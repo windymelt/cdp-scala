@@ -7,7 +7,7 @@ ThisBuild / tlBaseVersion := "1.0"
 
 ThisBuild / projectName := "cdp-scala"
 ThisBuild / organization := "io.github.windymelt"
-ThisBuild / organizationName := "cdp.scala authors"
+ThisBuild / organizationName := "cdp-scala authors"
 ThisBuild / startYear := Some(2024)
 ThisBuild / licenses := Seq(License.MIT)
 ThisBuild / developers := List(
