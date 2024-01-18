@@ -66,6 +66,11 @@ ThisBuild / tlCiReleaseBranches          := Seq()
 // Document
 //
 
+import laika.helium.Helium
+
+import laika.helium.config._
+import laika.ast.Path.Root
+
 lazy val docs = project
   .in(file("site"))
   .dependsOn(core.jvm)
@@ -75,21 +80,16 @@ lazy val docs = project
       // ドキュメントの例ではローカル変数を使わないこともあるだろう
       "-Wunused:locals",
     ),
+    laikaTheme := Helium.defaults.site
+      .topNavigationBar(
+        homeLink = IconLink.internal(Root / "index.md", HeliumIcon.home),
+        navLinks = Seq(
+        ),
+        versionMenu = VersionMenu.create(
+          versionedLabelPrefix = "Version:",
+          unversionedLabel = "Choose Version"
+        ),
+        highContrast = true
+      ).build
   )
 
-import laika.helium.Helium
-
-import laika.helium.config._
-import laika.ast.Path.Root
-
-docs / laikaTheme := Helium.defaults.site
-  .topNavigationBar(
-    homeLink = IconLink.internal(Root / "index.md", HeliumIcon.home),
-    navLinks = Seq(
-    ),
-    versionMenu = VersionMenu.create(
-      versionedLabelPrefix = "Version:",
-      unversionedLabel = "Choose Version"
-    ),
-    highContrast = true
-  ).build
