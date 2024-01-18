@@ -1,5 +1,5 @@
-import ProjectKeys._
 import Implicits._
+import ProjectKeys._
 
 val scala3Version = "3.3.1"
 
