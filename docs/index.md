@@ -1,3 +1,3 @@
 # Hello
 
-This is dummy page for docs.
+This is stub page for docs.

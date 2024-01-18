@@ -76,3 +76,20 @@ lazy val docs = project
       "-Wunused:locals",
     ),
   )
+
+import laika.helium.Helium
+
+import laika.helium.config._
+import laika.ast.Path.Root
+
+docs / laikaTheme := Helium.defaults.site
+  .topNavigationBar(
+    homeLink = IconLink.internal(Root / "index.md", HeliumIcon.home),
+    navLinks = Seq(
+    ),
+    versionMenu = VersionMenu.create(
+      versionedLabelPrefix = "Version:",
+      unversionedLabel = "Choose Version"
+    ),
+    highContrast = true
+  ).build
