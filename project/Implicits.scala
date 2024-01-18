@@ -23,7 +23,7 @@ object Implicits {
           CrossPlugin.autoImport.crossProjectBaseDirectory := {
             val dir = file(s"modules/${(project / name).value}")
             IO.resolve((LocalRootProject / baseDirectory).value, dir)
-          },
+          }
         )
         .configure(project =>
           project.in(file("modules") / project.base.getPath),
