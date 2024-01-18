@@ -19,6 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+package io.github.windymelt.cdpscala
+
 @main def hello: Unit =
   println("Hello world!")
   println(msg)
