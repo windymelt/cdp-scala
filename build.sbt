@@ -61,3 +61,18 @@ ThisBuild / githubWorkflowJavaVersions := Seq(
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
 
 ThisBuild / tlCiReleaseBranches          := Seq()
+
+//
+// Document
+//
+
+lazy val docs = project
+  .in(file("site"))
+  .dependsOn(core.jvm)
+  .enablePlugins(TypelevelSitePlugin)
+  .settings(
+    scalacOptions --= Seq(
+      // ドキュメントの例ではローカル変数を使わないこともあるだろう
+      "-Wunused:locals",
+    ),
+  )
