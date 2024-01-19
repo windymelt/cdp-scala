@@ -9,6 +9,8 @@ import org.http4s.Request
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.jdkhttpclient.JdkHttpClient
+import org.http4s.client.websocket.WSRequest
+import org.http4s.client.websocket.WSConnectionHighLevel
 
 object TabSession {
   type TabSessionIO = Resource[IO, NewTabResult]
@@ -56,4 +58,20 @@ object TabSession {
       _ <- c.expect[String]:
         urlForChromeProcess(chromeProcess) / "json" / "close" / tabId
     yield ()
+
+  def wsSession(
+      tab: NewTabResult
+  ): IO[Resource[IO, WSConnectionHighLevel[IO]]] = {
+    import java.net.http.HttpClient
+    import org.http4s.client.websocket.WSClient
+    import org.http4s.jdkhttpclient.JdkWSClient
+
+    val wsClient: IO[WSClient[IO]] = IO(HttpClient.newHttpClient())
+      .map { httpClient => JdkWSClient[IO](httpClient) }
+
+    for ws <- wsClient
+    yield ws.connectHighLevel(
+      WSRequest(Uri.unsafeFromString(tab.webSocketDebuggerUrl))
+    )
+  }
 }
