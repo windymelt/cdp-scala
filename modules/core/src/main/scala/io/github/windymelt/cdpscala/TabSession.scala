@@ -17,9 +17,6 @@ object TabSession {
   type TabSessionIO = Resource[IO, NewTabResult]
   private val client: IO[Client[IO]] = JdkHttpClient.simple[IO]
 
-  private def urlForChromeProcess(c: ChromeProcess): Uri =
-    Uri.unsafeFromString(s"http://${c.host}:${c.port}")
-
   type NewTabResult = % {
     val id: String
     val webSocketDebuggerUrl: String
@@ -36,7 +33,7 @@ object TabSession {
     def browserVersion(chromeProcess: ChromeProcess): IO[String] = for {
       c <- client
       versionString <- c.expect[String](
-        urlForChromeProcess(chromeProcess) / "json" / "version"
+        cp.httpUrl / "json" / "version"
       )
     } yield versionString
 
@@ -48,9 +45,7 @@ object TabSession {
         tab <- c.expect[NewTabResult]:
           Request(
             PUT,
-            urlForChromeProcess(
-              cp
-            ) / "json" / "new" +? ("url", "https://example.com")
+            cp.httpUrl / "json" / "new" +? ("url", "https://example.com")
           )
       yield tab
     }
@@ -59,7 +54,7 @@ object TabSession {
       for
         c <- client
         _ <- c.expect[String]:
-          urlForChromeProcess(cp) / "json" / "close" / tabId
+          cp.httpUrl / "json" / "close" / tabId
       yield ()
   }
 

@@ -2,6 +2,7 @@ package io.github.windymelt.cdpscala
 
 import cats.effect.IO
 import cats.effect.Resource
+import org.http4s.Uri
 
 object ChromeProcess {
   type ChromeProcessIO = Resource[IO, ChromeProcess]
@@ -26,4 +27,5 @@ object ChromeProcess {
 
 case class ChromeProcess(proc: os.SubProcess, host: String, port: Int) {
   def destroy(): Unit = proc.destroy()
+  def httpUrl: Uri = Uri.unsafeFromString(s"http://${host}:${port}")
 }
