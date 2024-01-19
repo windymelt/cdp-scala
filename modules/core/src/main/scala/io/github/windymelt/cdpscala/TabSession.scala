@@ -64,6 +64,13 @@ object TabSession {
   }
 
   type CDPTabSession = Resource[IO, WSConnectionHighLevel[IO]]
+  type CaptureScreenshotParams = % {
+    val format: String
+  }
+  type CaptureScreenshotResult = % {
+    val id: Int
+    val result: % { val data: String }
+  }
   def openWsSession(
       tab: NewTabResult
   ): IO[CDPTabSession] = {
@@ -80,14 +87,17 @@ object TabSession {
     )
   }
 
-  def cmd[R <: %](
+  def cmd[R <: %, Result <: %](
       session: WSConnectionHighLevel[IO],
       id: Int,
       method: String,
       params: R
-  )(using io.circe.Encoder[R]): IO[Unit] =
+  )(using io.circe.Encoder[R], io.circe.Decoder[Result]): IO[Result] =
     import com.github.tarao.record4s.circe.Codec.encoder
+    import io.circe.generic.auto.*
+    import io.circe.parser.parse
     import io.circe.syntax.*
+
     val cmd: CDPWSCommand[R] = %(
       id = id,
       method = method,
@@ -96,19 +106,40 @@ object TabSession {
     for
       _ <- IO.println(cmd.asJson.spaces2)
       _ <- session.send(WSFrame.Text(cmd.asJson.noSpaces))
-      _ <- session
+      resp <- session
         // a backpressured stream of incoming frames
         .receiveStream
         // we do not care about Binary frames (and will never receive any)
         .collect { case WSFrame.Text(str, _) => str }
-        // send back the modified text
-        .evalTap(str => IO.println(str))
+        // .evalTap(str => IO.println(str))
         .head
         .compile
-        .drain
-    yield ()
+        .lastOrError
+    yield parse(resp)
+      .flatMap(_.as[Result])
+      .toOption
+      .get /* TODO: Error handling */
 
   def navigate(session: WSConnectionHighLevel[IO], url: String): IO[Unit] =
     import com.github.tarao.record4s.circe.Codec.encoder
-    cmd(session, 1, "Page.navigate", %(url = url))
+    cmd(
+      session,
+      1 /* TODO: give random posint */,
+      "Page.navigate",
+      %(url = url)
+    )
+
+  def captureScreenshot(
+      session: WSConnectionHighLevel[IO],
+      format: "jpeg" | "png" | "webp" /* TODO: more options available */
+  ): IO[String] =
+    import com.github.tarao.record4s.circe.Codec.encoder
+    val result: IO[CaptureScreenshotResult] =
+      cmd(
+        session,
+        2 /* TODO: give random posint */,
+        "Page.captureScreenshot",
+        %(format = format: String)
+      )
+    result.map(_.result.data)
 }
