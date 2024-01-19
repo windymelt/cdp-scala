@@ -34,6 +34,8 @@ object Main extends IOApp.Simple {
           for
             _ <- IO.println("new tab opened")
             _ <- IO.println(ts)
+            wsSession <- TabSession.openWsSession(ts)
+            _ <- wsSession.use { s => IO.println(s) }
             _ <- IO.println("closing tab")
             _ <- TabSession.closeTab(cp, ts.id)
             _ <- IO.println("tab closed")

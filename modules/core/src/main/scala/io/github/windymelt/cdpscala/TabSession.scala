@@ -59,7 +59,7 @@ object TabSession {
         urlForChromeProcess(chromeProcess) / "json" / "close" / tabId
     yield ()
 
-  def wsSession(
+  def openWsSession(
       tab: NewTabResult
   ): IO[Resource[IO, WSConnectionHighLevel[IO]]] = {
     import java.net.http.HttpClient
