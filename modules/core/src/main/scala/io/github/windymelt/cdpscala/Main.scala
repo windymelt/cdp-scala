@@ -28,9 +28,15 @@ object Main extends IOApp.Simple {
   def run: IO[Unit] = for {
     _ <- IO.delay(println(msg))
     _ <- ChromeProcess.spawn().use { cp =>
-      TabSession.browserVersion(cp).flatMap { version =>
-        IO.println(version)
-      }
+      for {
+        _ <- IO.println(cp)
+        _ <- TabSession.newTab(cp).use { ts =>
+          for
+            _ <- IO.println("new tab opened")
+            _ <- IO.println(ts)
+          yield ()
+        }
+      } yield ()
     }
   } yield ()
 }

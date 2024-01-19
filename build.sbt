@@ -43,6 +43,7 @@ lazy val root = tlCrossRootProject
   )
 
 val http4sVersion = "0.23.25"
+val circeVersion = "0.14.1"
 lazy val core = crossProject(JVMPlatform)
   .crossType(CrossType.Pure)
   .withoutSuffixFor(JVMPlatform)
@@ -54,7 +55,16 @@ lazy val core = crossProject(JVMPlatform)
       "com.lihaoyi" %%% "os-lib" % "0.9.3",
       "org.http4s" %%% "http4s-jdk-http-client" % "0.9.1",
       "org.http4s" %%% "http4s-dsl" % http4sVersion,
-    )
+      "org.http4s" %%% "http4s-circe" % http4sVersion,
+      "com.github.tarao" %%% "record4s" % "0.10.0",
+      "com.github.tarao" %%% "record4s-circe" % "0.10.0",
+    ),
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core",
+      "io.circe" %% "circe-generic",
+      "io.circe" %% "circe-parser",
+    ).map(_ % circeVersion),
+    // addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full), // for circe
   )
 
 ThisBuild / githubWorkflowJavaVersions := Seq(
