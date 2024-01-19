@@ -42,13 +42,19 @@ lazy val root = tlCrossRootProject
     Test / console := (core.jvm / Test / console).value
   )
 
+val http4sVersion = "0.23.25"
 lazy val core = crossProject(JVMPlatform)
   .crossType(CrossType.Pure)
   .withoutSuffixFor(JVMPlatform)
   .asModuleWithoutSuffix
   .settings(compileSettings)
   .settings(
-    description := "Chrome DevTools Protocol wrapper for Scala"
+    description := "Chrome DevTools Protocol wrapper for Scala",
+    libraryDependencies ++= Seq(
+      "com.lihaoyi" %%% "os-lib" % "0.9.3",
+      "org.http4s" %%% "http4s-jdk-http-client" % "0.9.1",
+      "org.http4s" %%% "http4s-dsl" % http4sVersion,
+    )
   )
 
 ThisBuild / githubWorkflowJavaVersions := Seq(
