@@ -57,13 +57,13 @@ lazy val core = crossProject(JVMPlatform)
       "org.http4s" %%% "http4s-dsl" % http4sVersion,
       "org.http4s" %%% "http4s-circe" % http4sVersion,
       "com.github.tarao" %%% "record4s" % "0.10.0",
-      "com.github.tarao" %%% "record4s-circe" % "0.10.0",
+      "com.github.tarao" %%% "record4s-circe" % "0.10.0"
     ),
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core",
       "io.circe" %% "circe-generic",
-      "io.circe" %% "circe-parser",
-    ).map(_ % circeVersion),
+      "io.circe" %% "circe-parser"
+    ).map(_ % circeVersion)
     // addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full), // for circe
   )
 
