@@ -21,6 +21,11 @@ object TabSession {
     val id: String
     val webSocketDebuggerUrl: String
   }
+  type CDPWSCommand[R <: %] = % {
+    val id: Int
+    val method: String
+    val params: R
+  }
   extension (cp: ChromeProcess) {
 
     /** Browser version metadata.
@@ -80,12 +85,19 @@ object TabSession {
       id: Int,
       method: String,
       params: R
-  ): IO[Unit] =
-    val paramsJson: String = """{"url":"https://example.com/"}"""
+  )(using io.circe.Encoder[R]): IO[Unit] =
+    import com.github.tarao.record4s.circe.Codec.encoder
+    import io.circe.syntax.*
+    val cmd: CDPWSCommand[R] = %(
+      id = id,
+      method = method,
+      params = params
+    )
     for
+      _ <- IO.println(cmd.asJson.spaces2)
       _ <- session.send(
         WSFrame.Text(
-          s"""{"id":$id,"method":"$method","params":$paramsJson}"""
+          cmd.asJson.noSpaces
         )
       )
       _ <- session
@@ -101,5 +113,6 @@ object TabSession {
     yield ()
 
   def navigate(session: WSConnectionHighLevel[IO], url: String): IO[Unit] =
+    import com.github.tarao.record4s.circe.Codec.encoder
     cmd(session, 1, "Page.navigate", %(url = "https://example.com/"))
 }
