@@ -36,31 +36,3 @@ object Main extends IOApp.Simple {
 }
 
 def msg = "Chrome DevTools Protocol wrapper for Scala test command"
-
-object ChromeProcess {
-  import cats.effect.*
-
-  type ChromeProcessIO = Resource[IO, ChromeProcess]
-
-  val CHROME_SHELL = "chromium"
-
-  def spawn(): ChromeProcessIO =
-    Resource.make {
-      IO.delay(rawSpawnChrome())
-    } { proc =>
-      IO.delay(proc.destroy())
-    }
-
-  private def rawSpawnChrome(): ChromeProcess = ChromeProcess(
-    os
-      .proc(CHROME_SHELL, "--headless", "--remote-debugging-port=9222")
-      .spawn(stdout = os.Inherit, stderr = os.Inherit)
-  )("localhost", 9222)
-}
-
-case class ChromeProcess private (proc: os.SubProcess)(
-    host: String,
-    port: Int
-) {
-  def destroy(): Unit = proc.destroy()
-}
