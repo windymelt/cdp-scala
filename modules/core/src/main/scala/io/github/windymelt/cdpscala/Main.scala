@@ -24,13 +24,13 @@ package io.github.windymelt.cdpscala
 import cats.effect.IO
 import cats.effect.IOApp
 
-import scala.concurrent.duration.FiniteDuration
-
 object Main extends IOApp.Simple {
   def run: IO[Unit] = for {
     _ <- IO.delay(println(msg))
-    _ <- ChromeProcess.spawn().use { _ =>
-      IO.sleep(FiniteDuration(10, "seconds"))
+    _ <- ChromeProcess.spawn().use { cp =>
+      TabSession.browserVersion(cp).flatMap { version =>
+        IO.println(version)
+      }
     }
   } yield ()
 }

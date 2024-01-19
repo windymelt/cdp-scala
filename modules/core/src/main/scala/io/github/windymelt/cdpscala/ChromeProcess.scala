@@ -18,13 +18,12 @@ object ChromeProcess {
   private def rawSpawnChrome(): ChromeProcess = ChromeProcess(
     os
       .proc(CHROME_SHELL, "--headless", "--remote-debugging-port=9222")
-      .spawn(stdout = os.Inherit, stderr = os.Inherit)
-  )("localhost", 9222)
+      .spawn(stdout = os.Inherit, stderr = os.Inherit),
+    "localhost",
+    9222
+  )
 }
 
-case class ChromeProcess private (proc: os.SubProcess)(
-    host: String,
-    port: Int
-) {
+case class ChromeProcess(proc: os.SubProcess, host: String, port: Int) {
   def destroy(): Unit = proc.destroy()
 }
