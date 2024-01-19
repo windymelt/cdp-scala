@@ -95,11 +95,7 @@ object TabSession {
     )
     for
       _ <- IO.println(cmd.asJson.spaces2)
-      _ <- session.send(
-        WSFrame.Text(
-          cmd.asJson.noSpaces
-        )
-      )
+      _ <- session.send(WSFrame.Text(cmd.asJson.noSpaces))
       _ <- session
         // a backpressured stream of incoming frames
         .receiveStream

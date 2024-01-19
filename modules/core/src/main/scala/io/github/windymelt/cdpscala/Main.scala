@@ -21,9 +21,9 @@
 
 package io.github.windymelt.cdpscala
 
+import TabSession.*
 import cats.effect.IO
 import cats.effect.IOApp
-import TabSession.*
 
 object Main extends IOApp.Simple {
   def run: IO[Unit] = for {
