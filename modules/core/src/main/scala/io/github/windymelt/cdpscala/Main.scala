@@ -34,6 +34,9 @@ object Main extends IOApp.Simple {
           for
             _ <- IO.println("new tab opened")
             _ <- IO.println(ts)
+            _ <- IO.println("closing tab")
+            _ <- TabSession.closeTab(cp, ts.id)
+            _ <- IO.println("tab closed")
           yield ()
         }
       } yield ()

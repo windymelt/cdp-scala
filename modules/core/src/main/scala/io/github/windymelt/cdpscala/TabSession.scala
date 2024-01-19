@@ -11,8 +11,6 @@ import org.http4s.client.Client
 import org.http4s.jdkhttpclient.JdkHttpClient
 
 object TabSession {
-  import org.http4s.circe.CirceEntityDecoder.*
-
   type TabSessionIO = Resource[IO, NewTabResult]
   private val client: IO[Client[IO]] = JdkHttpClient.simple[IO]
 
@@ -38,6 +36,7 @@ object TabSession {
     val webSocketDebuggerUrl: String
   }
   def newTab(chromeProcess: ChromeProcess): TabSessionIO = Resource.eval {
+    import org.http4s.circe.CirceEntityDecoder.*
     // TODO: close tab automatically
     for
       c <- client
@@ -50,4 +49,11 @@ object TabSession {
         )
     yield tab
   }
+
+  def closeTab(chromeProcess: ChromeProcess, tabId: String): IO[Unit] =
+    for
+      c <- client
+      _ <- c.expect[String]:
+        urlForChromeProcess(chromeProcess) / "json" / "close" / tabId
+    yield ()
 }
