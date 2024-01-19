@@ -11,6 +11,7 @@ import org.http4s.client.Client
 import org.http4s.jdkhttpclient.JdkHttpClient
 import org.http4s.client.websocket.WSRequest
 import org.http4s.client.websocket.WSConnectionHighLevel
+import org.http4s.client.websocket.WSFrame
 
 object TabSession {
   type TabSessionIO = Resource[IO, NewTabResult]
@@ -75,4 +76,23 @@ object TabSession {
       WSRequest(Uri.unsafeFromString(tab.webSocketDebuggerUrl))
     )
   }
+
+  def navigate(session: WSConnectionHighLevel[IO], url: String): IO[Unit] =
+    for
+      _ <- session.send(
+        WSFrame.Text(
+          """{"id":1,"method":"Page.navigate","params":{"url":"https://example.com/"}}"""
+        )
+      )
+      _ <- session
+        // a backpressured stream of incoming frames
+        .receiveStream
+        // we do not care about Binary frames (and will never receive any)
+        .collect { case WSFrame.Text(str, _) => str }
+        // send back the modified text
+        .evalTap(str => IO.println(str))
+        .head
+        .compile
+        .drain
+    yield ()
 }
