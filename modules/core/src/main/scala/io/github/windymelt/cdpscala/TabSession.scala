@@ -59,9 +59,10 @@ object TabSession {
         urlForChromeProcess(chromeProcess) / "json" / "close" / tabId
     yield ()
 
+  type CDPTabSession = Resource[IO, WSConnectionHighLevel[IO]]
   def openWsSession(
       tab: NewTabResult
-  ): IO[Resource[IO, WSConnectionHighLevel[IO]]] = {
+  ): IO[CDPTabSession] = {
     import java.net.http.HttpClient
     import org.http4s.client.websocket.WSClient
     import org.http4s.jdkhttpclient.JdkWSClient
