@@ -75,11 +75,17 @@ object TabSession {
     )
   }
 
-  def navigate(session: WSConnectionHighLevel[IO], url: String): IO[Unit] =
+  def cmd[R <: %](
+      session: WSConnectionHighLevel[IO],
+      id: Int,
+      method: String,
+      params: R
+  ): IO[Unit] =
+    val paramsJson: String = """{"url":"https://example.com/"}"""
     for
       _ <- session.send(
         WSFrame.Text(
-          """{"id":1,"method":"Page.navigate","params":{"url":"https://example.com/"}}"""
+          s"""{"id":$id,"method":"$method","params":$paramsJson}"""
         )
       )
       _ <- session
@@ -93,4 +99,7 @@ object TabSession {
         .compile
         .drain
     yield ()
+
+  def navigate(session: WSConnectionHighLevel[IO], url: String): IO[Unit] =
+    cmd(session, 1, "Page.navigate", %(url = "https://example.com/"))
 }
