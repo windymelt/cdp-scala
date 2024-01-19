@@ -36,7 +36,9 @@ object Main extends IOApp.Simple {
             _ <- IO.println("new tab opened")
             _ <- IO.println(ts)
             wsSession <- TabSession.openWsSession(ts)
-            _ <- wsSession.use { s => TabSession.navigate(s, "") }
+            _ <- wsSession.use { s =>
+              TabSession.navigate(s, "https://example.com/")
+            }
             _ <- IO.println("closing tab")
             _ <- cp.closeTab(ts.id)
             _ <- IO.println("tab closed")

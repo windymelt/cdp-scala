@@ -114,5 +114,5 @@ object TabSession {
 
   def navigate(session: WSConnectionHighLevel[IO], url: String): IO[Unit] =
     import com.github.tarao.record4s.circe.Codec.encoder
-    cmd(session, 1, "Page.navigate", %(url = "https://example.com/"))
+    cmd(session, 1, "Page.navigate", %(url = url))
 }
