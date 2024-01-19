@@ -21,28 +21,25 @@
 
 package io.github.windymelt.cdpscala
 
+import TabSession.*
 import cats.effect.IO
 import cats.effect.IOApp
-
-import TabSession.*
 
 object Main extends IOApp.Simple {
   def run: IO[Unit] = for {
     _ <- IO.delay(println(msg))
     _ <- ChromeProcess.spawn().use { cp =>
       for {
-        _ <- IO.println(cp)
         _ <- cp.newTab().use { ts =>
           for
             _ <- IO.println("new tab opened")
-            _ <- IO.println(ts)
             wsSession <- TabSession.openWsSession(ts)
             shot <- wsSession.use { s =>
               TabSession.navigate(s, "https://example.com/") >> TabSession
                 .captureScreenshot(s, "png")
             }
             _ <- IO.delay {
-              os.write(os.pwd / "ss.png.base64", shot)
+              os.write.over(os.pwd / "ss.png.base64", shot)
             }
             _ <- IO.println("closing tab")
             _ <- cp.closeTab(ts.id)
