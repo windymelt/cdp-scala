@@ -23,6 +23,7 @@ package io.github.windymelt.cdpscala
 
 import cats.effect.IO
 import cats.effect.IOApp
+import TabSession.*
 
 object Main extends IOApp.Simple {
   def run: IO[Unit] = for {
@@ -30,14 +31,14 @@ object Main extends IOApp.Simple {
     _ <- ChromeProcess.spawn().use { cp =>
       for {
         _ <- IO.println(cp)
-        _ <- TabSession.newTab(cp).use { ts =>
+        _ <- cp.newTab().use { ts =>
           for
             _ <- IO.println("new tab opened")
             _ <- IO.println(ts)
             wsSession <- TabSession.openWsSession(ts)
             _ <- wsSession.use { s => TabSession.navigate(s, "") }
             _ <- IO.println("closing tab")
-            _ <- TabSession.closeTab(cp, ts.id)
+            _ <- cp.closeTab(ts.id)
             _ <- IO.println("tab closed")
           yield ()
         }

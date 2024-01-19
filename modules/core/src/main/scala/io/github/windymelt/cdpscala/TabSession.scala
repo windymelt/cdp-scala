@@ -20,45 +20,48 @@ object TabSession {
   private def urlForChromeProcess(c: ChromeProcess): Uri =
     Uri.unsafeFromString(s"http://${c.host}:${c.port}")
 
-  /** Browser version metadata.
-    *
-    * @see
-    *   https://chromedevtools.github.io/devtools-protocol/#get-jsonversion
-    * @param chromeProcess
-    * @return
-    */
-  def browserVersion(chromeProcess: ChromeProcess): IO[String] = for {
-    c <- client
-    versionString <- c.expect[String](
-      urlForChromeProcess(chromeProcess) / "json" / "version"
-    )
-  } yield versionString
-
   type NewTabResult = % {
     val id: String
     val webSocketDebuggerUrl: String
   }
-  def newTab(chromeProcess: ChromeProcess): TabSessionIO = Resource.eval {
-    import org.http4s.circe.CirceEntityDecoder.*
-    // TODO: close tab automatically
-    for
-      c <- client
-      tab <- c.expect[NewTabResult]:
-        Request(
-          PUT,
-          urlForChromeProcess(
-            chromeProcess
-          ) / "json" / "new" +? ("url", "https://example.com")
-        )
-    yield tab
-  }
+  extension (cp: ChromeProcess) {
 
-  def closeTab(chromeProcess: ChromeProcess, tabId: String): IO[Unit] =
-    for
+    /** Browser version metadata.
+      *
+      * @see
+      *   https://chromedevtools.github.io/devtools-protocol/#get-jsonversion
+      * @param chromeProcess
+      * @return
+      */
+    def browserVersion(chromeProcess: ChromeProcess): IO[String] = for {
       c <- client
-      _ <- c.expect[String]:
-        urlForChromeProcess(chromeProcess) / "json" / "close" / tabId
-    yield ()
+      versionString <- c.expect[String](
+        urlForChromeProcess(chromeProcess) / "json" / "version"
+      )
+    } yield versionString
+
+    def newTab(): TabSessionIO = Resource.eval {
+      import org.http4s.circe.CirceEntityDecoder.*
+      // TODO: close tab automatically
+      for
+        c <- client
+        tab <- c.expect[NewTabResult]:
+          Request(
+            PUT,
+            urlForChromeProcess(
+              cp
+            ) / "json" / "new" +? ("url", "https://example.com")
+          )
+      yield tab
+    }
+
+    def closeTab(tabId: String): IO[Unit] =
+      for
+        c <- client
+        _ <- c.expect[String]:
+          urlForChromeProcess(cp) / "json" / "close" / tabId
+      yield ()
+  }
 
   type CDPTabSession = Resource[IO, WSConnectionHighLevel[IO]]
   def openWsSession(
