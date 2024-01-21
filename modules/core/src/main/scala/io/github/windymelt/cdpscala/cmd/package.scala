@@ -22,6 +22,7 @@
 package io.github.windymelt.cdpscala
 
 import cats.effect.IO
+import cats.effect.std.Random
 import com.github.tarao.record4s.%
 import org.http4s.client.websocket.WSConnectionHighLevel
 import org.http4s.client.websocket.WSFrame
@@ -64,4 +65,6 @@ package object cmd {
       .flatMap(_.as[Result])
       .toOption
       .get /* TODO: Error handling */
+
+  private[cmd] def randomCommandID()(using r: Random[IO]): IO[Int] = r.nextInt
 }

@@ -22,6 +22,7 @@
 package io.github.windymelt.cdpscala.cmd
 
 import cats.effect.IO
+import cats.effect.std.Random
 import com.github.tarao.record4s.%
 import com.github.tarao.record4s.circe.Codec.decoder
 import org.http4s.client.websocket.WSConnectionHighLevel
@@ -32,24 +33,29 @@ object Page:
     val result: % { val data: String }
   }
   extension (session: WSConnectionHighLevel[IO])
-    def navigate(url: String): IO[Unit] =
-        import com.github.tarao.record4s.circe.Codec.encoder
-        cmd(
-        session,
-        1 /* TODO: give random posint */,
-        "Page.navigate",
-        %(url = url)
+    def navigate(url: String)(using Random[IO]): IO[Unit] =
+      import com.github.tarao.record4s.circe.Codec.encoder
+      for
+        id <- randomCommandID()
+        _ <- cmd(
+          session,
+          id,
+          "Page.navigate",
+          %(url = url)
         )
+      yield ()
 
     def captureScreenshot(
         format: "jpeg" | "png" | "webp" /* TODO: more options available */
-    ): IO[String] =
-        import com.github.tarao.record4s.circe.Codec.encoder
-        val result: IO[CaptureScreenshotResult] =
-        cmd(
-            session,
-            2 /* TODO: give random posint */,
-            "Page.captureScreenshot",
-            %(format = format: String)
-        )
-        result.map(_.result.data)
+    )(using Random[IO]): IO[String] =
+      import com.github.tarao.record4s.circe.Codec.encoder
+      val takeShot: Int => IO[CaptureScreenshotResult] = id => cmd(
+        session,
+        id,
+        "Page.captureScreenshot",
+        %(format = format: String)
+      )
+      for
+        id <- randomCommandID()
+        shot <- takeShot(id).map(_.result.data)
+      yield shot
