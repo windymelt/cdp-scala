@@ -33,22 +33,22 @@ object Main extends IOApp.Simple {
     // We use created RNG for further operation
     given cats.effect.std.Random[IO] <- cats.effect.std.Random
       .scalaUtilRandom[IO]
-    _ <- ChromeProcess.spawn().use { cp =>
-      cp.newTabAutoClose().use { ts =>
-        for
-          _ <- IO.println("new tab opened")
-          wsSession <- TabSession.openWsSession(ts)
-          shotBase64 <- wsSession.use { s =>
-            import cmd.Page.{navigate, captureScreenshot}
-            s.navigate("https://example.com/")
-              >> s.captureScreenshot("png")
-          }
-          _ <- IO.delay:
-            val Base64(shot) = shotBase64: @unchecked
-            os.write.over(os.pwd / "ss.png", shot)
-        yield ()
-      }
-    }
+    _ <- ChromeProcess
+      .spawn()
+      .use: cp =>
+        cp.newTabAutoClose()
+          .use: ts =>
+            for
+              _ <- IO.println("new tab opened")
+              wsSession <- TabSession.openWsSession(ts)
+              shotBase64 <- wsSession.use: s =>
+                import cmd.Page.{navigate, captureScreenshot}
+                s.navigate("https://example.com/")
+                  >> s.captureScreenshot("png")
+              _ <- IO.delay:
+                val Base64(shot) = shotBase64: @unchecked
+                os.write.over(os.pwd / "ss.png", shot)
+            yield ()
   yield ()
 }
 
