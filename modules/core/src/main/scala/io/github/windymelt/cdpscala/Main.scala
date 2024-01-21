@@ -24,26 +24,28 @@ package io.github.windymelt.cdpscala
 import TabSession.*
 import cats.effect.IO
 import cats.effect.IOApp
+import util.Base64
 
 object Main extends IOApp.Simple {
   def run: IO[Unit] = for
     _ <- IO.delay(println(msg))
     // We need random number generator(RNG) to provide command ID
     // We use created RNG for further operation
-    given cats.effect.std.Random[IO] <- cats.effect.std.Random.scalaUtilRandom[IO]
+    given cats.effect.std.Random[IO] <- cats.effect.std.Random
+      .scalaUtilRandom[IO]
     _ <- ChromeProcess.spawn().use { cp =>
       cp.newTabAutoClose().use { ts =>
         for
           _ <- IO.println("new tab opened")
           wsSession <- TabSession.openWsSession(ts)
-          shot <- wsSession.use { s =>
+          shotBase64 <- wsSession.use { s =>
             import cmd.Page.{navigate, captureScreenshot}
-            s.navigate("https://example.com/") >>
-            s.captureScreenshot("png")
+            s.navigate("https://example.com/")
+              >> s.captureScreenshot("png")
           }
-          _ <- IO.delay {
-            os.write.over(os.pwd / "ss.png.base64", shot)
-          }
+          _ <- IO.delay:
+            val Base64(shot) = shotBase64: @unchecked
+            os.write.over(os.pwd / "ss.png", shot)
         yield ()
       }
     }
