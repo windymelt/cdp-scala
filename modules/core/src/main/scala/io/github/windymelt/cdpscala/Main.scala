@@ -29,21 +29,19 @@ object Main extends IOApp.Simple {
   def run: IO[Unit] = for {
     _ <- IO.delay(println(msg))
     _ <- ChromeProcess.spawn().use { cp =>
-      for {
-        _ <- cp.newTabAutoClose().use { ts =>
-          for
-            _ <- IO.println("new tab opened")
-            wsSession <- TabSession.openWsSession(ts)
-            shot <- wsSession.use { s =>
-              TabSession.navigate(s, "https://example.com/") >> TabSession
-                .captureScreenshot(s, "png")
-            }
-            _ <- IO.delay {
-              os.write.over(os.pwd / "ss.png.base64", shot)
-            }
-          yield ()
-        }
-      } yield ()
+      cp.newTabAutoClose().use { ts =>
+        for
+          _ <- IO.println("new tab opened")
+          wsSession <- TabSession.openWsSession(ts)
+          shot <- wsSession.use { s =>
+            TabSession.navigate(s, "https://example.com/") >> TabSession
+              .captureScreenshot(s, "png")
+          }
+          _ <- IO.delay {
+            os.write.over(os.pwd / "ss.png.base64", shot)
+          }
+        yield ()
+      }
     }
   } yield ()
 }
