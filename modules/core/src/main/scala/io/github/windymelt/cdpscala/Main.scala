@@ -26,6 +26,7 @@ import cats.effect.IO
 import cats.effect.IOApp
 import util.Base64
 import cats.effect.std.Random
+import com.github.tarao.record4s.%
 
 object Main extends IOApp.Simple {
   def run: IO[Unit] = for
@@ -44,7 +45,12 @@ object Main extends IOApp.Simple {
               shotBase64 <- wsSession.use: s =>
                 import cmd.Page.{navigate, captureScreenshot}
                 s.navigate("https://example.com/")
-                  >> s.captureScreenshot("png")
+                  >> s.captureScreenshot(
+                    "png",
+                    viewport = Some(
+                      %(x = 0, y = 0, width = 1920, height = 1080, scale = 1.0)
+                    )
+                  )
               _ <- IO.delay:
                 val Base64(shot) = shotBase64: @unchecked
                 os.write.over(os.pwd / "ss.png", shot)

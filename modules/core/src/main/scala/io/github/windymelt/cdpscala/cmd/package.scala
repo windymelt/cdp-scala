@@ -38,11 +38,14 @@ package object cmd {
       id: Int,
       method: String,
       params: R
-  )(using io.circe.Encoder[R], io.circe.Decoder[Result]): IO[Result] =
+  )(using enc: io.circe.Encoder[R], dec: io.circe.Decoder[Result]): IO[Result] =
     import com.github.tarao.record4s.circe.Codec.encoder
     import io.circe.generic.auto.*
     import io.circe.parser.parse
     import io.circe.syntax.*
+    import io.circe.Encoder
+    // `None` field is converted into `null`, then eliminated by circe
+    given Encoder[R] = enc.mapJson(_.dropNullValues)
 
     val cmd: CDPWSCommand[R] = %(
       id = id,

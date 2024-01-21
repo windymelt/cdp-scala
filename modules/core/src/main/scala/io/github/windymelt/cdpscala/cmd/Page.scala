@@ -32,12 +32,19 @@ object Page:
     val id: Int
     val result: % { val data: String }
   }
+  type Viewport = % {
+    val x: Int
+    val y: Int
+    val width: Int
+    val height: Int
+    val scale: Double
+  }
   extension (session: WSConnectionHighLevel[IO])
     def navigate(url: String)(using Random[IO]): IO[Unit] =
       import com.github.tarao.record4s.circe.Codec.encoder
       for
         id <- randomCommandID()
-        _ <- cmd(
+        r <- cmd(
           session,
           id,
           "Page.navigate",
@@ -46,15 +53,20 @@ object Page:
       yield ()
 
     def captureScreenshot(
-        format: "jpeg" | "png" | "webp" /* TODO: more options available */
+        format: "jpeg" | "png" | "webp", /* TODO: more options available */
+        viewport: Option[Viewport] = None
     )(using Random[IO]): IO[String] =
       import com.github.tarao.record4s.circe.Codec.encoder
-      val takeShot: Int => IO[CaptureScreenshotResult] = id => cmd(
-        session,
-        id,
-        "Page.captureScreenshot",
-        %(format = format: String)
-      )
+      val takeShot: Int => IO[CaptureScreenshotResult] = id =>
+        cmd(
+          session,
+          id,
+          "Page.captureScreenshot",
+          %(
+            format = format: String,
+            clip = viewport
+          )
+        )
       for
         id <- randomCommandID()
         shot <- takeShot(id).map(_.result.data)
