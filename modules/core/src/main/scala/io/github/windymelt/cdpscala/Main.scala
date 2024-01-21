@@ -30,7 +30,7 @@ object Main extends IOApp.Simple {
     _ <- IO.delay(println(msg))
     _ <- ChromeProcess.spawn().use { cp =>
       for {
-        _ <- cp.newTab().use { ts =>
+        _ <- cp.newTabAutoClose().use { ts =>
           for
             _ <- IO.println("new tab opened")
             wsSession <- TabSession.openWsSession(ts)
@@ -41,9 +41,6 @@ object Main extends IOApp.Simple {
             _ <- IO.delay {
               os.write.over(os.pwd / "ss.png.base64", shot)
             }
-            _ <- IO.println("closing tab")
-            _ <- cp.closeTab(ts.id)
-            _ <- IO.println("tab closed")
           yield ()
         }
       } yield ()

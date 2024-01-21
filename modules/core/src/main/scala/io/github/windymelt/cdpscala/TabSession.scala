@@ -63,9 +63,22 @@ object TabSession {
       )
     } yield versionString
 
+    def newTabAutoClose(): TabSessionIO = Resource.make {
+      import org.http4s.circe.CirceEntityDecoder.*
+      for
+        c <- client
+        tab <- c.expect[NewTabResult]:
+          Request(
+            PUT,
+            cp.httpUrl / "json" / "new" +? ("url", "https://example.com")
+          )
+      yield tab
+    }{ tab =>
+      closeTab(tab.id)
+    }
+
     def newTab(): TabSessionIO = Resource.eval {
       import org.http4s.circe.CirceEntityDecoder.*
-      // TODO: close tab automatically
       for
         c <- client
         tab <- c.expect[NewTabResult]:
