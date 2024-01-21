@@ -25,14 +25,14 @@ import TabSession.*
 import cats.effect.IO
 import cats.effect.IOApp
 import util.Base64
+import cats.effect.std.Random
 
 object Main extends IOApp.Simple {
   def run: IO[Unit] = for
     _ <- IO.delay(println(msg))
     // We need random number generator(RNG) to provide command ID
     // We use created RNG for further operation
-    given cats.effect.std.Random[IO] <- cats.effect.std.Random
-      .scalaUtilRandom[IO]
+    given Random[IO] <- Random.scalaUtilRandom[IO]
     _ <- ChromeProcess
       .spawn()
       .use: cp =>
