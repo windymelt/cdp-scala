@@ -33,7 +33,7 @@ import org.http4s.jdkhttpclient.JdkHttpClient
 import org.http4s.client.websocket.WSRequest
 import org.http4s.client.websocket.WSConnectionHighLevel
 
-object TabSession {
+object TabSession:
   type TabSessionIO = Resource[IO, NewTabResult]
   private val client: IO[Client[IO]] = JdkHttpClient.simple[IO]
 
@@ -50,12 +50,12 @@ object TabSession {
       * @param chromeProcess
       * @return
       */
-    def browserVersion(chromeProcess: ChromeProcess): IO[String] = for {
+    def browserVersion(chromeProcess: ChromeProcess): IO[String] = for
       c <- client
       versionString <- c.expect[String](
         cp.httpUrl / "json" / "version"
       )
-    } yield versionString
+    yield versionString
 
     def newTabAutoClose(): TabSessionIO = Resource.make {
       import org.http4s.circe.CirceEntityDecoder.*
@@ -67,11 +67,11 @@ object TabSession {
             cp.httpUrl / "json" / "new" +? ("url", "https://example.com")
           )
       yield tab
-    }{ tab =>
+    } { tab =>
       closeTab(tab.id)
     }
 
-    def newTab(): TabSessionIO = Resource.eval {
+    def newTab(): TabSessionIO = Resource.eval:
       import org.http4s.circe.CirceEntityDecoder.*
       for
         c <- client
@@ -81,20 +81,18 @@ object TabSession {
             cp.httpUrl / "json" / "new" +? ("url", "https://example.com")
           )
       yield tab
-    }
 
-    def closeTab(tabId: String): IO[Unit] =
-      for
-        c <- client
-        _ <- c.expect[String]:
-          cp.httpUrl / "json" / "close" / tabId
-      yield ()
+    def closeTab(tabId: String): IO[Unit] = for
+      c <- client
+      _ <- c.expect[String]:
+        cp.httpUrl / "json" / "close" / tabId
+    yield ()
   }
 
   type CDPTabSession = Resource[IO, WSConnectionHighLevel[IO]]
   def openWsSession(
       tab: NewTabResult
-  ): IO[CDPTabSession] = {
+  ): IO[CDPTabSession] =
     import java.net.http.HttpClient
     import org.http4s.client.websocket.WSClient
     import org.http4s.jdkhttpclient.JdkWSClient
@@ -106,5 +104,3 @@ object TabSession {
     yield ws.connectHighLevel(
       WSRequest(Uri.unsafeFromString(tab.webSocketDebuggerUrl))
     )
-  }
-}
