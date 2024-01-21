@@ -31,7 +31,7 @@ object Browser:
           "Browser.setWindowBounds",
           %(
             windowId = windowID,
-            bounds =
+            bounds = // TODO: drop null field
               bounds ++ %(windowState = bounds.windowState.getOrElse("normal"))
           )
         )
