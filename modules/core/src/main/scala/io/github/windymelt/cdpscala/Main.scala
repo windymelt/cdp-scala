@@ -34,7 +34,7 @@ object Main extends IOApp.Simple {
           _ <- IO.println("new tab opened")
           wsSession <- TabSession.openWsSession(ts)
           shot <- wsSession.use { s =>
-            TabSession.navigate(s, "https://example.com/") >> TabSession
+            cmd.Page.navigate(s, "https://example.com/") >> cmd.Page
               .captureScreenshot(s, "png")
           }
           _ <- IO.delay {

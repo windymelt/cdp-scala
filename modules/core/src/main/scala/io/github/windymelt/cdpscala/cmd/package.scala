@@ -11,7 +11,7 @@ package object cmd {
     val method: String
     val params: R
   }
-  def apply[R <: %, Result <: %](
+  def cmd[R <: %, Result <: %](
       session: WSConnectionHighLevel[IO],
       id: Int,
       method: String,
