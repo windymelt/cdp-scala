@@ -22,7 +22,8 @@ lazy val compileSettings = Def.settings(
   scalacOptions --= Seq(
     // Scala 3.0.1以降だとうまく動かない
     // https://github.com/lampepfl/dotty/issues/14952
-    "-Ykind-projector:underscores"
+    "-Ykind-projector:underscores",
+    "-Wunused:locals"
   ),
   Test / scalacOptions --= Seq(
     // テストだとちょっと厳しすぎる
