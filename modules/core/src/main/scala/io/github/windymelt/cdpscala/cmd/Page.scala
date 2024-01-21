@@ -31,25 +31,25 @@ object Page:
     val id: Int
     val result: % { val data: String }
   }
-  def navigate(session: WSConnectionHighLevel[IO], url: String): IO[Unit] =
-    import com.github.tarao.record4s.circe.Codec.encoder
-    cmd(
-      session,
-      1 /* TODO: give random posint */,
-      "Page.navigate",
-      %(url = url)
-    )
-
-  def captureScreenshot(
-      session: WSConnectionHighLevel[IO],
-      format: "jpeg" | "png" | "webp" /* TODO: more options available */
-  ): IO[String] =
-    import com.github.tarao.record4s.circe.Codec.encoder
-    val result: IO[CaptureScreenshotResult] =
-      cmd(
+  extension (session: WSConnectionHighLevel[IO])
+    def navigate(url: String): IO[Unit] =
+        import com.github.tarao.record4s.circe.Codec.encoder
+        cmd(
         session,
-        2 /* TODO: give random posint */,
-        "Page.captureScreenshot",
-        %(format = format: String)
-      )
-    result.map(_.result.data)
+        1 /* TODO: give random posint */,
+        "Page.navigate",
+        %(url = url)
+        )
+
+    def captureScreenshot(
+        format: "jpeg" | "png" | "webp" /* TODO: more options available */
+    ): IO[String] =
+        import com.github.tarao.record4s.circe.Codec.encoder
+        val result: IO[CaptureScreenshotResult] =
+        cmd(
+            session,
+            2 /* TODO: give random posint */,
+            "Page.captureScreenshot",
+            %(format = format: String)
+        )
+        result.map(_.result.data)

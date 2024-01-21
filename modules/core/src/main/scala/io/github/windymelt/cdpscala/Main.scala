@@ -34,8 +34,9 @@ object Main extends IOApp.Simple {
           _ <- IO.println("new tab opened")
           wsSession <- TabSession.openWsSession(ts)
           shot <- wsSession.use { s =>
-            cmd.Page.navigate(s, "https://example.com/") >> cmd.Page
-              .captureScreenshot(s, "png")
+            import cmd.Page.{navigate, captureScreenshot}
+            s.navigate("https://example.com/") >>
+            s.captureScreenshot("png")
           }
           _ <- IO.delay {
             os.write.over(os.pwd / "ss.png.base64", shot)
