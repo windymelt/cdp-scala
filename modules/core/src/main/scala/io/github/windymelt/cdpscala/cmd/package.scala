@@ -64,10 +64,14 @@ package object cmd {
         .head
         .compile
         .lastOrError
-    yield parse(resp)
+    yield parse(resp) // TODO: log when needed
       .flatMap(_.as[Result])
       .toOption
       .get /* TODO: Error handling */
 
   private[cmd] def randomCommandID()(using r: Random[IO]): IO[Int] = r.nextInt
+
+  /** Annotates that this command/parameter is experimental on CDP.
+    */
+  private[cmd] class experimental extends scala.annotation.StaticAnnotation
 }

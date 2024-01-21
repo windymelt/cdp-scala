@@ -28,6 +28,14 @@ import com.github.tarao.record4s.circe.Codec.decoder
 import org.http4s.client.websocket.WSConnectionHighLevel
 
 object Page:
+  type NavigateResult = % {
+    val id: Int
+    val result: % {
+      val frameId: FrameId
+      val loaderId: Option[Network.LoaderId]
+      val errorText: Option[String]
+    }
+  }
   type CaptureScreenshotResult = % {
     val id: Int
     val result: % { val data: String }
@@ -39,8 +47,22 @@ object Page:
     val height: Int
     val scale: Double
   }
+  type TransitionType = "link" | "typed" | "address_bar" | "auto_bookmark" |
+    "auto_subframe" | "manual_subframe" | "generated" | "auto_toplevel" |
+    "form_submit" | "reload" | "keyword" | "keyword_generated" | "other"
+  type FrameId = String
+  type ReferrerPolicy = "noReferrer" | "noReferrerWhenDowngrade" | "origin" |
+    "originWhenCrossOrigin" | "sameOrigin" | "strictOrigin" |
+    "strictOriginWhenCrossOrigin" | "unsafeUrl"
+
   extension (session: WSConnectionHighLevel[IO])
-    def navigate(url: String)(using Random[IO]): IO[Unit] =
+    def navigate(
+        url: String,
+        referrer: Option[String] = None,
+        transitionType: Option[TransitionType] = None,
+        frameId: Option[FrameId] = None,
+        @experimental referrerPolicy: Option[ReferrerPolicy] = None
+    )(using Random[IO]): IO[NavigateResult] =
       import com.github.tarao.record4s.circe.Codec.encoder
       for
         id <- randomCommandID()
@@ -48,14 +70,21 @@ object Page:
           session,
           id,
           "Page.navigate",
-          %(url = url)
-        )
-      yield ()
+          %(
+            url = url,
+            transitionType = transitionType: Option[String],
+            frameId = frameId
+          )
+        ): IO[NavigateResult]
+      yield r
 
     def captureScreenshot(
-        format: "jpeg" | "png" | "webp", /* TODO: more options available */
+        format: "jpeg" | "png" | "webp",
         quality: Option[Int] = None, // matters only when format is jpeg
-        viewport: Option[Viewport] = None
+        viewport: Option[Viewport] = None,
+        @experimental fromSurface: Option[Boolean] = None,
+        @experimental captureBeyondViewport: Option[Boolean] = None,
+        @experimental optimizeForSpeed: Option[Boolean] = None
     )(using Random[IO]): IO[String] =
       import com.github.tarao.record4s.circe.Codec.encoder
       val takeShot: Int => IO[CaptureScreenshotResult] = id =>
@@ -66,7 +95,10 @@ object Page:
           %(
             format = format: String,
             quality = quality,
-            clip = viewport
+            clip = viewport,
+            fromSurface = fromSurface,
+            captureBeyondViewport = captureBeyondViewport,
+            optimizeForSpeed = optimizeForSpeed
           )
         )
       for

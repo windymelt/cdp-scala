@@ -44,16 +44,31 @@ object Main extends IOApp.Simple {
               wsSession <- TabSession.openWsSession(ts)
               shotBase64 <- wsSession.use: s =>
                 import cmd.Page.{navigate, captureScreenshot}
-                s.navigate("https://example.com/")
-                  >> s.captureScreenshot(
-                    "png",
+                import cmd.Browser.setWindowBounds
+                for
+                  // expand window.
+                  _ <- s.setWindowBounds(
+                    1, // default window ID is 1
+                    %(
+                      left = Some(0),
+                      top = Some(0),
+                      width = Some(1920),
+                      height = Some(1080),
+                      windowState = None
+                    )
+                  )
+                  _ <- s.navigate("https://example.com/")
+                  shot <- s.captureScreenshot(
+                    "jpeg",
+                    quality = Some(80),
                     viewport = Some(
                       %(x = 0, y = 0, width = 1920, height = 1080, scale = 1.0)
                     )
                   )
+                yield shot
               _ <- IO.delay:
                 val Base64(shot) = shotBase64: @unchecked
-                os.write.over(os.pwd / "ss.png", shot)
+                os.write.over(os.pwd / "ss.jpeg", shot)
             yield ()
   yield ()
 }
