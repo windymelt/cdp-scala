@@ -54,6 +54,7 @@ object Page:
 
     def captureScreenshot(
         format: "jpeg" | "png" | "webp", /* TODO: more options available */
+        quality: Option[Int] = None, // matters only when format is jpeg
         viewport: Option[Viewport] = None
     )(using Random[IO]): IO[String] =
       import com.github.tarao.record4s.circe.Codec.encoder
@@ -64,6 +65,7 @@ object Page:
           "Page.captureScreenshot",
           %(
             format = format: String,
+            quality = quality,
             clip = viewport
           )
         )
