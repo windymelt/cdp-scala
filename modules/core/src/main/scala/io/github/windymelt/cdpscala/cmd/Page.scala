@@ -19,13 +19,14 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package io.github.windymelt.cdpscala.cmd
+package io.github.windymelt.cdpscala
+package cmd
 
 import cats.effect.IO
 import cats.effect.std.Random
 import com.github.tarao.record4s.%
 import com.github.tarao.record4s.circe.Codec.decoder
-import org.http4s.client.websocket.WSConnectionHighLevel
+import TabSession.WSSession
 
 object Page:
   type NavigateResult = % {
@@ -55,7 +56,7 @@ object Page:
     "originWhenCrossOrigin" | "sameOrigin" | "strictOrigin" |
     "strictOriginWhenCrossOrigin" | "unsafeUrl"
 
-  extension (session: WSConnectionHighLevel[IO])
+  extension (session: WSSession)
     def navigate(
         url: String,
         referrer: Option[String] = None,
@@ -105,3 +106,17 @@ object Page:
         id <- randomCommandID()
         shot <- takeShot(id).map(_.result.data)
       yield shot
+
+    def setLifecycleEventsEnabled(enabled: Boolean)(using
+        Random[IO]
+    ): IO[Unit] =
+      import com.github.tarao.record4s.circe.Codec.encoder
+      for
+        id <- randomCommandID()
+        _ <- cmd(
+          session,
+          id,
+          "Page.setLifecycleEventsEnabled",
+          %(enabled = enabled)
+        )
+      yield ()

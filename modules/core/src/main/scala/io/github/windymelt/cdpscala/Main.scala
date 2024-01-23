@@ -27,6 +27,7 @@ import cats.effect.IOApp
 import util.Base64
 import cats.effect.std.Random
 import com.github.tarao.record4s.%
+import io.github.windymelt.cdpscala.cmd.Page.setLifecycleEventsEnabled
 
 object Main extends IOApp.Simple {
   def run: IO[Unit] = for
@@ -39,13 +40,15 @@ object Main extends IOApp.Simple {
       .use: cp =>
         cp.newTabAutoClose()
           .use: ts =>
+            import EventHandling.withEventHandling
             for
               _ <- IO.println("new tab opened")
               wsSession <- TabSession.openWsSession(ts)
-              shotBase64 <- wsSession.use: s =>
+              shotBase64 <- wsSession.withEventHandling.use: s =>
                 import cmd.Page.{navigate, captureScreenshot}
                 import cmd.Browser.setWindowBounds
                 for
+                  _ <- s.setLifecycleEventsEnabled(true) // receive some events.
                   // expand window.
                   _ <- s.setWindowBounds(
                     1, // default window ID is 1
@@ -58,6 +61,7 @@ object Main extends IOApp.Simple {
                     )
                   )
                   _ <- s.navigate("https://example.com/")
+                  // TODO: receiving events after navigation?
                   shot <- s.captureScreenshot(
                     "jpeg",
                     quality = Some(80),

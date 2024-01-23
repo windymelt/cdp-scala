@@ -20,41 +20,30 @@
  */
 
 package io.github.windymelt.cdpscala
-package cmd
 
 import cats.effect.IO
-import cats.effect.std.Random
-import com.github.tarao.record4s.%
-import com.github.tarao.record4s.circe.Codec.decoder
+import cats.effect.Resource
+import org.http4s.client.websocket.WSDataFrame
 import TabSession.WSSession
 
-object Browser:
-  type WindowState = "normal" | "minimized" | "maximized" | "fullscreen"
-  type Bounds = % {
-    val left: Option[Int]
-    val top: Option[Int]
-    val width: Option[Int]
-    val height: Option[Int]
-    val windowState: Option[WindowState]
-  }
-  type WindowID = Int
+object EventHandling {
+  type Registry[A] = String => IO[A]
 
-  extension (session: WSSession)
-    @experimental
-    def setWindowBounds(windowID: WindowID, bounds: Bounds)(using
-        Random[IO]
-    ): IO[Unit] =
-      import com.github.tarao.record4s.circe.Codec.encoder
-      for
-        id <- randomCommandID()
-        _ <- cmd(
-          session,
-          id,
-          "Browser.setWindowBounds",
-          %(
-            windowId = windowID,
-            bounds = // TODO: drop null field
-              bounds ++ %(windowState = bounds.windowState.getOrElse("normal"))
-          )
-        )
-      yield ()
+  extension (session: Resource[IO, WSSession])
+    def withEventHandling: Resource[IO, WSSession] =
+      session.map: ws =>
+        val handler: WSDataFrame => IO[Unit] =
+          f =>
+            IO.println(s"<-- ${f.toString().take(200)}") // stub handler.
+            // TODO: implement register/abandon mechanism.
+
+        // intercept stream and tap
+        val rs = ws.receiveStream.evalTap(handler)
+
+        new WSSession {
+          def send: WSDataFrame => IO[Unit] = ws.send
+          def receiveStream: fs2.Stream[IO, WSDataFrame] = rs
+          def receive: IO[Option[WSDataFrame]] =
+            rs.head.compile.toList.map(_.headOption)
+        }
+}

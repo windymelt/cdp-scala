@@ -24,8 +24,8 @@ package io.github.windymelt.cdpscala
 import cats.effect.IO
 import cats.effect.std.Random
 import com.github.tarao.record4s.%
-import org.http4s.client.websocket.WSConnectionHighLevel
 import org.http4s.client.websocket.WSFrame
+import TabSession.WSSession
 
 package object cmd {
   type CDPWSCommand[R <: %] = % {
@@ -34,7 +34,7 @@ package object cmd {
     val params: R
   }
   def cmd[R <: %, Result <: %](
-      session: WSConnectionHighLevel[IO],
+      session: WSSession,
       id: Int,
       method: String,
       params: R
@@ -54,19 +54,26 @@ package object cmd {
     )
     for
       _ <- session.send(WSFrame.Text(cmd.asJson.noSpaces))
-      resp <- session
-        // a backpressured stream of incoming frames
-        .receiveStream
-        // we do not care about Binary frames (and will never receive any)
+      _ <- IO.println(
+        s"--> ${WSFrame.Text(cmd.asJson.noSpaces).toString.take(200)}"
+      )
+      resp <- session.receiveStream
         .collect { case WSFrame.Text(str, _) => str }
-        // .evalTap(str => IO.println(str))
-        .head
+        .map(parse)
+        .collect { case Right(j) => j }
+        .find(
+          _.hcursor
+            .downField("id")
+            .focus
+            .flatMap(_.asNumber)
+            .flatMap(_.toInt)
+            .map(_ == id)
+            .getOrElse(false)
+        )
         .compile
-        .lastOrError
-    yield parse(resp) // TODO: log when needed
-      .flatMap(_.as[Result])
-      .toOption
-      .get /* TODO: Error handling */
+        .toList
+        .map(_.head)
+    yield resp.as[Result].toOption.get /* TODO: Error handling */
 
   private[cmd] def randomCommandID()(using r: Random[IO]): IO[Int] = r.nextInt
 

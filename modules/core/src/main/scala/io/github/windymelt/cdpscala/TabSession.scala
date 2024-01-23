@@ -32,6 +32,7 @@ import org.http4s.client.Client
 import org.http4s.jdkhttpclient.JdkHttpClient
 import org.http4s.client.websocket.WSRequest
 import org.http4s.client.websocket.WSConnectionHighLevel
+import org.http4s.client.websocket.WSDataFrame
 
 object TabSession:
   type TabSessionIO = Resource[IO, NewTabResult]
@@ -89,7 +90,17 @@ object TabSession:
     yield ()
   }
 
-  type CDPTabSession = Resource[IO, WSConnectionHighLevel[IO]]
+  trait WSSession:
+    def send: WSDataFrame => IO[Unit]
+    def receiveStream: fs2.Stream[IO, WSDataFrame]
+    def receive: IO[Option[WSDataFrame]]
+
+  class WSConnectionSession(conn: WSConnectionHighLevel[IO]) extends WSSession:
+    def send: WSDataFrame => IO[Unit] = conn.send
+    def receiveStream: fs2.Stream[IO, WSDataFrame] = conn.receiveStream
+    def receive: IO[Option[WSDataFrame]] = conn.receive
+
+  type CDPTabSession = Resource[IO, WSSession]
   def openWsSession(
       tab: NewTabResult
   ): IO[CDPTabSession] =
@@ -101,6 +112,8 @@ object TabSession:
       .map { httpClient => JdkWSClient[IO](httpClient) }
 
     for ws <- wsClient
-    yield ws.connectHighLevel(
-      WSRequest(Uri.unsafeFromString(tab.webSocketDebuggerUrl))
-    )
+    yield ws
+      .connectHighLevel(
+        WSRequest(Uri.unsafeFromString(tab.webSocketDebuggerUrl))
+      )
+      .map(conn => WSConnectionSession(conn))
