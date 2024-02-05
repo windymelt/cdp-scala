@@ -6,7 +6,7 @@ val scala3Version = "3.3.1"
 ThisBuild / tlBaseVersion := "1.0"
 
 ThisBuild / projectName := "cdp-scala"
-ThisBuild / organization := "io.github.windymelt"
+ThisBuild / organization := "dev.capslock"
 ThisBuild / organizationName := "cdp-scala authors"
 ThisBuild / startYear := Some(2024)
 ThisBuild / licenses := Seq(License.MIT)
