@@ -3,7 +3,7 @@ import ProjectKeys._
 
 val scala3Version = "3.3.1"
 
-ThisBuild / tlBaseVersion := "1.0"
+ThisBuild / tlBaseVersion := "0.0"
 
 ThisBuild / projectName := "cdp-scala"
 ThisBuild / organization := "dev.capslock"
