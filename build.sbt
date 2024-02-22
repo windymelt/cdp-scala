@@ -57,8 +57,8 @@ lazy val core = crossProject(JVMPlatform)
       "org.http4s" %%% "http4s-jdk-http-client" % "0.9.1",
       "org.http4s" %%% "http4s-dsl" % http4sVersion,
       "org.http4s" %%% "http4s-circe" % http4sVersion,
-      "com.github.tarao" %%% "record4s" % "0.11.0",
-      "com.github.tarao" %%% "record4s-circe" % "0.11.0"
+      "com.github.tarao" %%% "record4s" % "0.11.2",
+      "com.github.tarao" %%% "record4s-circe" % "0.11.2"
     ),
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core",
