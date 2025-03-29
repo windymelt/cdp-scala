@@ -48,6 +48,9 @@ jobs:
           java-version: 11
           cache: sbt
 
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
+        
       - name: sbt update
         if: matrix.java == 'temurin@11' && steps.setup-java-temurin-11.outputs.cache-hit == 'false'
         run: sbt +update
@@ -121,6 +124,9 @@ jobs:
           distribution: temurin
           java-version: 11
           cache: sbt
+          
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
 
       - name: sbt update
         if: matrix.java == 'temurin@11' && steps.setup-java-temurin-11.outputs.cache-hit == 'false'
@@ -195,6 +201,9 @@ jobs:
           distribution: temurin
           java-version: 11
           cache: sbt
+          
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
 
       - name: sbt update
         if: matrix.java == 'temurin@11' && steps.setup-java-temurin-11.outputs.cache-hit == 'false'
@@ -240,6 +249,9 @@ jobs:
           distribution: temurin
           java-version: 11
           cache: sbt
+          
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
 
       - name: sbt update
         if: matrix.java == 'temurin@11' && steps.setup-java-temurin-11.outputs.cache-hit == 'false'
