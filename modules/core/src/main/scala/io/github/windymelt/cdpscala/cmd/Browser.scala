@@ -41,6 +41,32 @@ object Browser:
 
   extension (session: WSSession)
     @experimental
+    def getWindowForTarget(
+        // targetId: Option[Target.TargetID]
+    )(using
+        Random[IO]
+    ): IO[% { val windowId: WindowID; /* val bounds: Bounds */ }] =
+      import com.github.tarao.record4s.circe.Codec.decoder
+      import com.github.tarao.record4s.circe.Codec.encoder
+      for
+        id <- randomCommandID()
+        res <- cmd[
+          %, // % { /*val targetId: Option[Target.TargetID]*/ },
+          % {
+            val id: Int;
+            val result: % { val windowId: WindowID; /*val bounds: Bounds*/ }
+          }
+        ](
+          session,
+          id,
+          "Browser.getWindowForTarget",
+          %(
+            // targetId = targetId
+          )
+        )
+      yield %(windowId = res.result.windowId)
+
+    @experimental
     def setWindowBounds(windowID: WindowID, bounds: Bounds)(using
         Random[IO]
     ): IO[Unit] =

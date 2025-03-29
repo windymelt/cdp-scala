@@ -51,7 +51,7 @@ object TabSession:
       * @param chromeProcess
       * @return
       */
-    def browserVersion(chromeProcess: ChromeProcess): IO[String] = for
+    def browserVersion(): IO[String] = for
       c <- client
       versionString <- c.expect[String](
         cp.httpUrl / "json" / "version"
@@ -89,6 +89,8 @@ object TabSession:
         cp.httpUrl / "json" / "close" / tabId
     yield ()
   }
+
+  def extractBrowserId(url: String): String = url.split("/").last
 
   trait WSSession:
     def send: WSDataFrame => IO[Unit]

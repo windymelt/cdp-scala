@@ -57,6 +57,13 @@ object Page:
     "strictOriginWhenCrossOrigin" | "unsafeUrl"
 
   extension (session: WSSession)
+    def enable()(using Random[IO]): IO[Unit] =
+      import com.github.tarao.record4s.circe.Codec.encoder
+      for
+        id <- randomCommandID()
+        _ <- cmd(session, id, "Page.enable", %())
+      yield ()
+
     def navigate(
         url: String,
         referrer: Option[String] = None,
@@ -71,11 +78,8 @@ object Page:
           session,
           id,
           "Page.navigate",
-          %(
-            url = url,
-            transitionType = transitionType: Option[String],
-            frameId = frameId
-          )
+          %(url, frameId) ++
+            %(transitionType = transitionType: Option[String])
         ): IO[NavigateResult]
       yield r
 
