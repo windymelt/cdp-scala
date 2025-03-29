@@ -32,11 +32,14 @@ object ChromeProcess {
 
   def spawn(): ChromeProcessIO =
     Resource.make {
-      IO.delay(rawSpawnChrome())
+      IO.delay(rawSpawnChrome()) <* IO.sleep(
+        concurrent.duration.Duration(100, "milliseconds")
+      )
     } { proc =>
       IO.delay(proc.destroy())
     }
 
+  // TODO: toggle headless switch
   private def rawSpawnChrome(): ChromeProcess = ChromeProcess(
     os
       .proc(CHROME_SHELL, "--headless", "--remote-debugging-port=9222")
