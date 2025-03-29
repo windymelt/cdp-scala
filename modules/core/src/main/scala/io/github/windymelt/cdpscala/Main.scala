@@ -70,11 +70,12 @@ object Main extends IOApp.Simple {
                   )
                   _ <- s.enable()
                   _ <- s.navigate("https://example.com/")
-                  _ <- s.waitForLifecycleEvent("firstContentfulPaint")
+                  _ <- s.waitForLifecycleEvent("networkAlmostIdle")
                   _ <- s.setScrollbarsHidden(true)
                   shot <- s.captureScreenshot(
                     "jpeg",
                     quality = Some(80),
+                    captureBeyondViewport = Some(true),
                     viewport = Some(
                       %(
                         x = 0,
