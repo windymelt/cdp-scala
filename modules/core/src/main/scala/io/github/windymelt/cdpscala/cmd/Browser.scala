@@ -37,7 +37,7 @@ object Browser:
     val height: Option[Int]
     val windowState: Option[WindowState]
   }
-  type WindowID = Int
+  opaque type WindowID = Int
 
   extension (session: WSSession)
     @experimental
