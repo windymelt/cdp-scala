@@ -51,6 +51,7 @@ object EventHandling {
         )
       } yield eventHandlingSession
 
+  // TODO: track loading id
   private def parseJsonEvent(f: WSDataFrame): Option[EventType] = {
     val frameText = f.toString()
     try {
