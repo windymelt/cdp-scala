@@ -28,6 +28,9 @@ import util.Base64
 import cats.effect.std.Random
 import com.github.tarao.record4s.%
 import io.github.windymelt.cdpscala.cmd.Page.setLifecycleEventsEnabled
+import io.github.windymelt.cdpscala.cmd.Page.enable
+import io.github.windymelt.cdpscala.cmd.Emulation.setScrollbarsHidden
+//import scala.concurrent.duration.FiniteDuration
 
 object Main extends IOApp.Simple {
   def run: IO[Unit] = for
@@ -38,20 +41,25 @@ object Main extends IOApp.Simple {
     _ <- ChromeProcess
       .spawn()
       .use: cp =>
-        cp.newTabAutoClose()
+        cp
+          .newTabAutoClose()
           .use: ts =>
             import EventHandling.withEventHandling
             for
               _ <- IO.println("new tab opened")
+              browserId = TabSession.extractBrowserId(ts.webSocketDebuggerUrl)
               wsSession <- TabSession.openWsSession(ts)
               shotBase64 <- wsSession.withEventHandling.use: s =>
                 import cmd.Page.{navigate, captureScreenshot}
-                import cmd.Browser.setWindowBounds
+                import cmd.Browser.{setWindowBounds, getWindowForTarget}
                 for
-                  _ <- s.setLifecycleEventsEnabled(true) // receive some events.
+                  _ <- s.setLifecycleEventsEnabled(
+                    true
+                  )
+                  window <- s.getWindowForTarget( /*None*/ )
                   // expand window.
                   _ <- s.setWindowBounds(
-                    1, // default window ID is 1
+                    window.windowId,
                     %(
                       left = Some(0),
                       top = Some(0),
@@ -60,13 +68,21 @@ object Main extends IOApp.Simple {
                       windowState = None
                     )
                   )
+                  _ <- s.enable()
                   _ <- s.navigate("https://example.com/")
-                  // TODO: receiving events after navigation?
+                  _ <- s.waitForLifecycleEvent("firstContentfulPaint")
+                  _ <- s.setScrollbarsHidden(true)
                   shot <- s.captureScreenshot(
                     "jpeg",
                     quality = Some(80),
                     viewport = Some(
-                      %(x = 0, y = 0, width = 1920, height = 1080, scale = 1.0)
+                      %(
+                        x = 0,
+                        y = 0,
+                        width = 1920,
+                        height = 1080,
+                        scale = 1.0
+                      )
                     )
                   )
                 yield shot
