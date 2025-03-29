@@ -94,7 +94,7 @@ object EventHandling {
 
     ws.receiveStream
       .evalMap(frame =>
-        IO.println("enqueueing frame...") >> clientQueue.offer(
+        clientQueue.offer(
           frame
         ) >> handler(frame)
       )
