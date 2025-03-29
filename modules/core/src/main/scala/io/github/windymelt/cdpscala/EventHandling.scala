@@ -38,48 +38,47 @@ object EventHandling {
 
   extension (session: Resource[IO, WSSession])
     def withEventHandling: Resource[IO, EventHandlingWSSession] =
-      Resource.eval(EventRegistry.create).flatMap { eventRegistry =>
-        session.flatMap { ws =>
-          Resource
-            .eval(cats.effect.std.Queue.unbounded[IO, WSDataFrame])
-            .flatMap { clientQueue =>
-              val handler: WSDataFrame => IO[Unit] =
-                f =>
-                  for {
-                    _ <- IO.println(s"<-- ${f.toString().take(200)}")
-                    lifecycleEvent <- IO.pure(parseJsonEvent(f))
-                    _ <- lifecycleEvent.traverse(eventRegistry.fire)
-                  } yield ()
+      for {
+        eventRegistry <- Resource.eval(EventRegistry.create)
+        ws <- session
+        clientQueue <- Resource.eval(
+          cats.effect.std.Queue.unbounded[IO, WSDataFrame]
+        )
+        eventHandlingSession <- {
+          val handler: WSDataFrame => IO[Unit] =
+            f =>
+              for {
+                _ <- IO.println(s"<-- ${f.toString().take(200)}")
+                lifecycleEvent <- IO.pure(parseJsonEvent(f))
+                _ <- lifecycleEvent.traverse(eventRegistry.fire)
+              } yield ()
 
-              ws.receiveStream
-                .evalMap(frame =>
-                  IO.println("enqueueing frame...") >> clientQueue
-                    .offer(frame) >> IO.println(
-                    "queued. handling..."
-                  ) >> handler(frame) >> IO.println("handled.")
-                )
-                .compile
-                .drain
-                .background
-                .map { publisherFiber =>
+          ws.receiveStream
+            .evalMap(frame =>
+              IO.println("enqueueing frame...") >> clientQueue.offer(
+                frame
+              ) >> handler(frame)
+            )
+            .compile
+            .drain
+            .background
+            .map { _ =>
+              val rs = fs2.Stream.fromQueueUnterminated(clientQueue)
 
-                  val rs = fs2.Stream.fromQueueUnterminated(clientQueue)
+              new EventHandlingWSSession {
+                def send: WSDataFrame => IO[Unit] = ws.send
+                def receiveStream: fs2.Stream[IO, WSDataFrame] = rs
+                def receive: IO[Option[WSDataFrame]] =
+                  rs.head.compile.toList.map(_.headOption)
 
-                  new EventHandlingWSSession {
-                    def send: WSDataFrame => IO[Unit] = ws.send
-                    def receiveStream: fs2.Stream[IO, WSDataFrame] = rs
-                    def receive: IO[Option[WSDataFrame]] =
-                      rs.head.compile.toList.map(_.headOption)
-
-                    def waitForLifecycleEvent(name: String): IO[Unit] =
-                      eventRegistry.waitFor(
-                        EventRegistry.EventType.LifecycleEvent(name)
-                      )
-                  }
-                }
+                def waitForLifecycleEvent(name: String): IO[Unit] =
+                  eventRegistry.waitFor(
+                    EventRegistry.EventType.LifecycleEvent(name)
+                  )
+              }
             }
         }
-      }
+      } yield eventHandlingSession
 
   def parseJsonEvent(f: WSDataFrame): Option[EventType] = {
     val frameText = f.toString()
