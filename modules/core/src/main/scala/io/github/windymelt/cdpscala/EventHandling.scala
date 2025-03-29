@@ -21,29 +21,100 @@
 
 package io.github.windymelt.cdpscala
 
+import cats.syntax.traverse.*
 import cats.effect.IO
 import cats.effect.Resource
 import org.http4s.client.websocket.WSDataFrame
 import TabSession.WSSession
+import io.circe.parser.parse
+import io.github.windymelt.cdpscala.EventRegistry.EventType
 
 object EventHandling {
   type Registry[A] = String => IO[A]
 
+  trait EventHandlingWSSession extends WSSession {
+    def waitForLifecycleEvent(name: String): IO[Unit]
+  }
+
   extension (session: Resource[IO, WSSession])
-    def withEventHandling: Resource[IO, WSSession] =
-      session.map: ws =>
-        val handler: WSDataFrame => IO[Unit] =
-          f =>
-            IO.println(s"<-- ${f.toString().take(200)}") // stub handler.
-            // TODO: implement register/abandon mechanism.
+    def withEventHandling: Resource[IO, EventHandlingWSSession] =
+      for {
+        eventRegistry <- Resource.eval(EventRegistry.create)
+        ws <- session
+        clientQueue <- Resource.eval(
+          cats.effect.std.Queue.unbounded[IO, WSDataFrame]
+        )
+        eventHandlingSession <- createEventHandlingSession(
+          eventRegistry,
+          ws,
+          clientQueue
+        )
+      } yield eventHandlingSession
 
-        // intercept stream and tap
-        val rs = ws.receiveStream.evalTap(handler)
+  private def parseJsonEvent(f: WSDataFrame): Option[EventType] = {
+    val frameText = f.toString()
+    try {
+      val jsonStr = frameText.substring(
+        frameText.indexOf('{'),
+        frameText.lastIndexOf('}') + 1
+      )
+      parse(jsonStr).toOption.flatMap { json =>
+        val cursor = json.hcursor
+        cursor
+          .get[String]("method")
+          .toOption
+          .collect { case "Page.lifecycleEvent" =>
+            cursor
+              .downField("params")
+              .as[io.circe.Json]
+              .toOption
+              .flatMap(_.hcursor.get[String]("name").toOption)
+              .map(EventType.LifecycleEvent.apply)
+          }
+          .flatten
+      }
+    } catch {
+      case _: Exception =>
+        None
+    }
+  }
 
-        new WSSession {
+  private def createEventHandlingSession(
+      eventRegistry: EventRegistry.Registry,
+      ws: WSSession,
+      clientQueue: cats.effect.std.Queue[IO, WSDataFrame]
+  ): Resource[IO, EventHandlingWSSession] = {
+    val handler: WSDataFrame => IO[Unit] =
+      f =>
+        for {
+          _ <- IO.println(s"<-- ${f.toString().take(200)}")
+          lifecycleEvent <- IO.pure(parseJsonEvent(f))
+          _ <- lifecycleEvent.traverse(eventRegistry.fire)
+        } yield ()
+
+    ws.receiveStream
+      .evalMap(frame =>
+        clientQueue.offer(
+          frame
+        ) >> handler(frame)
+      )
+      .compile
+      .drain
+      .background
+      .map { _ =>
+        val rs = fs2.Stream.fromQueueUnterminated(clientQueue)
+
+        new EventHandlingWSSession {
           def send: WSDataFrame => IO[Unit] = ws.send
           def receiveStream: fs2.Stream[IO, WSDataFrame] = rs
           def receive: IO[Option[WSDataFrame]] =
             rs.head.compile.toList.map(_.headOption)
+
+          def waitForLifecycleEvent(name: String): IO[Unit] =
+            eventRegistry.waitFor(
+              EventRegistry.EventType.LifecycleEvent(name)
+            )
         }
+      }
+  }
 }

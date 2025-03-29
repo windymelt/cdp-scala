@@ -28,59 +28,28 @@ import com.github.tarao.record4s.%
 import com.github.tarao.record4s.circe.Codec.decoder
 import TabSession.WSSession
 
-object Browser:
-  type WindowState = "normal" | "minimized" | "maximized" | "fullscreen"
-  type Bounds = % {
-    val left: Option[Int]
-    val top: Option[Int]
-    val width: Option[Int]
-    val height: Option[Int]
-    val windowState: Option[WindowState]
+/** Emulation domain allows to override various browser parameters.
+  */
+object Emulation:
+  type SetScrollbarsHiddenResult = % {
+    val id: Int
+    val result: % {}
   }
-  type WindowID = Int
 
   extension (session: WSSession)
-    @experimental
-    def getWindowForTarget(
-        // targetId: Option[Target.TargetID]
-    )(using
-        Random[IO]
-    ): IO[% { val windowId: WindowID; /* val bounds: Bounds */ }] =
-      import com.github.tarao.record4s.circe.Codec.decoder
+    /** Hides or shows scrollbars.
+      *
+      * @param hidden
+      *   Whether scrollbars should be hidden or not.
+      */
+    def setScrollbarsHidden(hidden: Boolean)(using Random[IO]): IO[Unit] =
       import com.github.tarao.record4s.circe.Codec.encoder
       for
         id <- randomCommandID()
-        res <- cmd[
-          %, // % { /*val targetId: Option[Target.TargetID]*/ },
-          % {
-            val id: Int;
-            val result: % { val windowId: WindowID; /*val bounds: Bounds*/ }
-          }
-        ](
+        _ <- cmd[% { val hidden: Boolean }, SetScrollbarsHiddenResult](
           session,
           id,
-          "Browser.getWindowForTarget",
-          %(
-            // targetId = targetId
-          )
-        )
-      yield %(windowId = res.result.windowId)
-
-    @experimental
-    def setWindowBounds(windowID: WindowID, bounds: Bounds)(using
-        Random[IO]
-    ): IO[Unit] =
-      import com.github.tarao.record4s.circe.Codec.encoder
-      for
-        id <- randomCommandID()
-        _ <- cmd(
-          session,
-          id,
-          "Browser.setWindowBounds",
-          %(
-            windowId = windowID,
-            bounds = // TODO: drop null field
-              bounds ++ %(windowState = bounds.windowState.getOrElse("normal"))
-          )
+          "Emulation.setScrollbarsHidden",
+          %(hidden)
         )
       yield ()
