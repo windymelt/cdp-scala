@@ -54,29 +54,24 @@ object EventHandling {
   // TODO: track loading id
   private def parseJsonEvent(f: WSDataFrame): Option[EventType] = {
     val frameText = f.toString()
-    try {
-      val jsonStr = frameText.substring(
-        frameText.indexOf('{'),
-        frameText.lastIndexOf('}') + 1
-      )
-      parse(jsonStr).toOption.flatMap { json =>
-        val cursor = json.hcursor
-        cursor
-          .get[String]("method")
-          .toOption
-          .collect { case "Page.lifecycleEvent" =>
-            cursor
-              .downField("params")
-              .as[io.circe.Json]
-              .toOption
-              .flatMap(_.hcursor.get[String]("name").toOption)
-              .map(EventType.LifecycleEvent.apply)
-          }
-          .flatten
-      }
-    } catch {
-      case _: Exception =>
-        None
+    val jsonStr = frameText.substring(
+      frameText.indexOf('{'),
+      frameText.lastIndexOf('}') + 1
+    )
+    parse(jsonStr).toOption.flatMap { json =>
+      val cursor = json.hcursor
+      cursor
+        .get[String]("method")
+        .toOption
+        .collect { case "Page.lifecycleEvent" =>
+          cursor
+            .downField("params")
+            .as[io.circe.Json]
+            .toOption
+            .flatMap(_.hcursor.get[String]("name").toOption)
+            .map(EventType.LifecycleEvent.apply)
+        }
+        .flatten
     }
   }
 
@@ -85,7 +80,7 @@ object EventHandling {
       ws: WSSession,
       clientQueue: cats.effect.std.Queue[IO, WSDataFrame]
   ): Resource[IO, EventHandlingWSSession] = {
-    val handler: WSDataFrame => IO[Unit] =
+    val eventHandler: WSDataFrame => IO[Unit] =
       f =>
         for {
           _ <- IO.println(s"<-- ${f.toString().take(200)}")
@@ -94,22 +89,18 @@ object EventHandling {
         } yield ()
 
     ws.receiveStream
-      .evalMap(frame =>
-        clientQueue.offer(
-          frame
-        ) >> handler(frame)
-      )
+      .evalMap(frame => clientQueue.offer(frame) >> eventHandler(frame))
       .compile
       .drain
       .background
       .map { _ =>
-        val rs = fs2.Stream.fromQueueUnterminated(clientQueue)
+        val frameStream = fs2.Stream.fromQueueUnterminated(clientQueue)
 
         new EventHandlingWSSession {
           def send: WSDataFrame => IO[Unit] = ws.send
-          def receiveStream: fs2.Stream[IO, WSDataFrame] = rs
+          def receiveStream: fs2.Stream[IO, WSDataFrame] = frameStream
           def receive: IO[Option[WSDataFrame]] =
-            rs.head.compile.toList.map(_.headOption)
+            frameStream.head.compile.toList.map(_.headOption)
 
           def waitForLifecycleEvent(name: String): IO[Unit] =
             eventRegistry.waitFor(

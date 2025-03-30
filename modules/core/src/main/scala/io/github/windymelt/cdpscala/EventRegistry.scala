@@ -28,7 +28,6 @@ import cats.effect.std.Queue
 import cats.syntax.all._
 
 object EventRegistry {
-
   enum EventType:
     case LifecycleEvent(name: String)
 
@@ -37,16 +36,14 @@ object EventRegistry {
   )
 
   trait Registry {
-
     def waitFor(eventType: EventType): IO[Unit]
-
     def fire(eventType: EventType): IO[Unit]
   }
 
   def create: IO[Registry] = for {
     stateRef <- Ref.of[IO, RegistryState](RegistryState())
     eventQueue <- Queue.unbounded[IO, EventType]
-    _ <- processEvents(eventQueue, stateRef).start
+    _ <- eventDispatcher(eventQueue, stateRef).start
   } yield new Registry {
     def waitFor(eventType: EventType): IO[Unit] = for {
       waiter <- Deferred[IO, Unit]
@@ -61,7 +58,7 @@ object EventRegistry {
       IO.println(s"! firing event: $eventType") >> eventQueue.offer(eventType)
   }
 
-  private def processEvents(
+  private def eventDispatcher(
       eventQueue: Queue[IO, EventType],
       stateRef: Ref[IO, RegistryState]
   ): IO[Unit] = {
