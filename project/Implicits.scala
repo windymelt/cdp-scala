@@ -26,7 +26,7 @@ object Implicits {
           }
         )
         .configure(project =>
-          project.in(file("modules") / project.base.getPath),
+          project.in(file("modules") / project.base.getPath)
         )
     }
   }
