@@ -43,7 +43,6 @@ lazy val root = tlCrossRootProject
     Test / console := (core.jvm / Test / console).value
   )
 
-val http4sVersion = "0.23.36"
 val circeVersion = "0.14.16"
 
 lazy val core = crossProject(JVMPlatform)
@@ -56,18 +55,36 @@ lazy val core = crossProject(JVMPlatform)
     libraryDependencies ++= Seq(
       "com.lihaoyi" %%% "os-lib" % "0.9.3",
       "org.http4s" %%% "http4s-jdk-http-client" % "0.9.1",
-      "org.http4s" %%% "http4s-dsl" % http4sVersion,
-      "org.http4s" %%% "http4s-circe" % http4sVersion,
-      "com.github.tarao" %%% "record4s" % "0.11.0",
-      "com.github.tarao" %%% "record4s-circe" % "0.11.0"
+      "io.circe" %%% "circe-core" % circeVersion,
+      "io.circe" %%% "circe-parser" % circeVersion,
+      "org.typelevel" %%% "munit-cats-effect" % "2.2.1" % Test
     ),
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core",
-      "io.circe" %% "circe-generic",
-      "io.circe" %% "circe-parser"
-    ).map(_ % circeVersion)
-    // addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full), // for circe
+    // Chrome DevTools Protocol bindings generated from protocol/*.json
+    Compile / sourceGenerators += Def.task {
+      val protocolDir = (LocalRootProject / baseDirectory).value / "protocol"
+      val inputs = Set(
+        protocolDir / "browser_protocol.json",
+        protocolDir / "js_protocol.json",
+        (LocalRootProject / baseDirectory).value / "project" / "CdpCodegen.scala"
+      )
+      val outDir = (Compile / sourceManaged).value / "cdp"
+      val cached = FileFunction.cached(
+        streams.value.cacheDirectory / "cdp-codegen",
+        FileInfo.hash
+      ) { _ =>
+        CdpCodegen
+          .generate(
+            inputs.filter(_.getName.endsWith(".json")).toSeq.sorted,
+            outDir
+          )
+          .toSet
+      }
+      cached(inputs).toSeq.sorted
+    }.taskValue
   )
+
+// java.net.http (used for the WebSocket connection) exists since JDK 11
+ThisBuild / tlJdkRelease := Some(11)
 
 ThisBuild / githubWorkflowJavaVersions := Seq(
   // No support for 8 because JDK Http Client comes from 11
@@ -76,6 +93,9 @@ ThisBuild / githubWorkflowJavaVersions := Seq(
 )
 
 ThisBuild / githubWorkflowTargetBranches := Seq("main")
+
+// Run the end-to-end tests (ChromeSuite) against the Chrome preinstalled on GitHub runners
+ThisBuild / githubWorkflowEnv += "CDP_SCALA_CHROME" -> "google-chrome"
 
 ThisBuild / tlCiReleaseBranches := Seq()
 
